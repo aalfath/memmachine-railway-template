@@ -15,7 +15,9 @@ for v in POSTGRES_HOST POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB QDRANT_HOST; 
   if [ -z "${!v:-}" ]; then log "$v is empty. It should reference the Postgres or Qdrant service."; exit 1; fi
 done
 if [ -z "${OPENAI_API_KEY:-}" ]; then
-  log "WARNING: OPENAI_API_KEY is empty. MemMachine starts, but memories can't be embedded or summarised until you set it."
+  log "OPENAI_API_KEY is empty. MemMachine checks the embedding model and the LLM at startup and stops without a working key."
+  log "Set OPENAI_API_KEY (and OPENAI_BASE_URL for another OpenAI-compatible provider) on this service, then redeploy."
+  exit 1
 fi
 
 # --- defaults (each one can be overridden with a service variable) --------------
@@ -109,6 +111,8 @@ wait_for "$POSTGRES_HOST" "$POSTGRES_PORT" PostgreSQL
 wait_for "$QDRANT_HOST" "$QDRANT_PORT" Qdrant
 
 # --- run MemMachine on loopback and Caddy on $PORT; stop when either exits ------
+log "starting MemMachine (LLM $LLM_MODEL via $LLM_API, embeddings $EMBEDDING_MODEL at $OPENAI_BASE_URL)"
+log "if it stops with an AuthenticationError, check OPENAI_API_KEY and OPENAI_BASE_URL"
 HOST=127.0.0.1 PORT="$MEMMACHINE_INTERNAL_PORT" memmachine-server &
 mm=$!
 caddy run --config /etc/caddy/Caddyfile --adapter caddyfile &
