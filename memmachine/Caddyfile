@@ -1,0 +1,29 @@
+# API-key gate in front of MemMachine. Every request needs
+#   Authorization: Bearer <MEMMACHINE_API_KEY>
+# except the health check and the read-only API description.
+{
+	admin off
+	auto_https off
+	persist_config off
+}
+
+:{$PORT:8080} {
+	encode gzip
+
+	@public path /api/v2/health /docs /docs/* /redoc /openapi.json
+	handle @public {
+		reverse_proxy 127.0.0.1:{$MEMMACHINE_INTERNAL_PORT:8081}
+	}
+
+	@authorized header Authorization "Bearer {$MEMMACHINE_API_KEY}"
+	handle @authorized {
+		reverse_proxy 127.0.0.1:{$MEMMACHINE_INTERNAL_PORT:8081} {
+			flush_interval -1
+		}
+	}
+
+	handle {
+		header WWW-Authenticate "Bearer"
+		respond "{\"detail\":\"Missing or invalid API key. Send Authorization: Bearer <MEMMACHINE_API_KEY>.\"}" 401
+	}
+}
