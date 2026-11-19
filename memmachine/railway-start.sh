@@ -42,7 +42,7 @@ python - <<'PY'
 import json, os
 e = os.environ
 cfg = {
-  "logging": {"path": "", "level": e.get("LOG_LEVEL", "info").lower()},
+  "logging": {"path": "/tmp/memmachine.log", "level": e.get("LOG_LEVEL", "info").lower()},
   "episode_store": {"database": "profile_storage"},
   "episodic_memory": {
     "long_term_memory": {
